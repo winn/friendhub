@@ -63,46 +63,24 @@ export const api = {
       });
       return response.json();
     },
-    creditPoints: async (agentId: string, points: number) => {
+    creditPoints: async (agentId: string, ownerId: string, points: number, userId: string) => {
       try {
-        // First get the agent to find its owner
-        const agentResponse = await fetch(`${BASE_URL}/listagents`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({ agentId })
-        });
-
-        if (!agentResponse.ok) {
-          throw new Error('Failed to fetch agent details');
-        }
-
-        const agentData = await agentResponse.json();
-        if (!agentData.agents || agentData.agents.length === 0) {
-          throw new Error('Agent not found');
-        }
-
-        const agent = agentData.agents[0];
-        if (!agent.user_id) {
-          throw new Error('Agent owner not found');
-        }
-
-        // Now credit points to the owner
-        const pointsResponse = await fetch(`${BASE_URL}/points`, {
+        const response = await fetch(`${BASE_URL}/points`, {
           method: 'POST',
           headers,
           body: JSON.stringify({
-            userId: agent.user_id,
+            userId: ownerId,
             points,
-            reason: "Credit for shared agent usage"
+            reason: `Credit to user ${ownerId} (owner of agent ${agentId}) used agent by userid ${userId}`
           })
         });
 
-        if (!pointsResponse.ok) {
-          const errorData = await pointsResponse.json();
+        if (!response.ok) {
+          const errorData = await response.json();
           throw new Error(errorData.error || 'Failed to credit points');
         }
 
-        return pointsResponse.json();
+        return response.json();
       } catch (error) {
         console.error('Error crediting points:', error);
         throw error;

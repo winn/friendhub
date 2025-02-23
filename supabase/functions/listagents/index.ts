@@ -19,14 +19,17 @@ serve(async (req: Request) => {
 
   try {
     let mainCategory: string | undefined;
+    let agentId: string | undefined;
     
     // Handle both GET and POST methods
     if (req.method === "POST") {
       const body = await req.json();
       mainCategory = body.mainCategory;
+      agentId = body.agentId; // Add support for filtering by agentId
     } else if (req.method === "GET") {
       const url = new URL(req.url);
       mainCategory = url.searchParams.get("mainCategory") || undefined;
+      agentId = url.searchParams.get("agentId") || undefined;
     } else {
       return new Response("Method Not Allowed", { 
         status: 405, 
@@ -48,12 +51,31 @@ serve(async (req: Request) => {
     // Build query
     let query = supabase
       .from("agents")
-      .select("*")
+      .select(`
+        agent_id,
+        owner_id,
+        name,
+        personality,
+        instructions,
+        prohibition,
+        agent_profile_image,
+        agent_main_category,
+        agent_sub_category,
+        llm_engine,
+        number_of_message_called,
+        number_of_users,
+        average_rating,
+        created_at,
+        modified_at
+      `)
       .order("created_at", { ascending: false });
 
-    // Apply category filter if provided
+    // Apply filters
     if (mainCategory) {
       query = query.eq("agent_main_category", mainCategory);
+    }
+    if (agentId) {
+      query = query.eq("agent_id", agentId);
     }
 
     // Execute query

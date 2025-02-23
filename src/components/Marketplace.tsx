@@ -4,12 +4,12 @@ import { api } from '../lib/api';
 
 interface Agent {
   agent_id: string;
+  user_id: string; // Changed from owner_id to match API response
   agent_name: string;
   personality: string;
   agent_profile_image: string;
   instructions: string;
   prohibition?: string;
-  user_id: string;
   created_at: string;
   modified_at: string;
   function_tools: any[];
@@ -82,6 +82,7 @@ export function Marketplace({ onSelectAgent }: MarketplaceProps) {
 
   const handleSelectAgent = (agent: Agent) => {
     localStorage.setItem('selectedAgentId', agent.agent_id);
+    localStorage.setItem('selectedAgentOwnerId', agent.user_id); // Store user_id as owner ID
     localStorage.setItem('selectedAgentName', agent.agent_name);
     localStorage.setItem('selectedAgentImage', agent.agent_profile_image);
     localStorage.setItem('selectedAgentPersonality', agent.personality);

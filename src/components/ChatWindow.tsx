@@ -22,6 +22,7 @@ export function ChatWindow({ userId, onPointsUpdate, onBack }: ChatWindowProps) 
   const storedAgent = localStorage.getItem('selectedAgent');
   const agent = storedAgent ? JSON.parse(storedAgent) : null;
   const storedAgentId = agent?.agent_id || localStorage.getItem('selectedAgentId');
+  const agentOwnerId = agent?.user_id || localStorage.getItem('selectedAgentOwnerId'); // Use user_id as owner ID
   const agentName = agent?.agent_name || localStorage.getItem('selectedAgentName');
   const agentImage = agent?.agent_profile_image || localStorage.getItem('selectedAgentImage');
   const agentRating = agent?.average_rating || localStorage.getItem('selectedAgentRating');
@@ -80,15 +81,16 @@ export function ChatWindow({ userId, onPointsUpdate, onBack }: ChatWindowProps) 
         throw new Error(messageResponse.error);
       }
 
-      // Finally credit points to agent owner
-      try {
-        await api.agent.creditPoints(storedAgentId, 5);
-      } catch (creditError) {
-        console.warn('Failed to credit points to agent owner:', creditError);
-        // Don't fail the whole operation if crediting fails
+      // Credit points to agent owner
+      if (agentOwnerId) {
+        try {
+          await api.agent.creditPoints(storedAgentId, agentOwnerId, 5, userId);
+          onPointsUpdate(); // Update points display after successful credit
+        } catch (creditError) {
+          console.warn('Failed to credit points to agent owner:', creditError);
+          // Don't fail the whole operation if crediting fails
+        }
       }
-
-      onPointsUpdate();
 
       // Add user message to the chat
       const userMessage: Message = {

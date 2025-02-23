@@ -1,12 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://yniavfaxbjjpljomtsdn.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InluaWF2ZmF4YmpqcGxqb210c2RuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzg0Nzg3MjAsImV4cCI6MjA1NDA1NDcyMH0.ggxjPj02gBj-p8_L0_4ff-liL6ID3sPhlYmUYzpc420';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
+    detectSessionInUrl: true,
+    flowType: 'pkce',
     storage: {
       getItem: (key) => {
         try {

@@ -12,11 +12,14 @@ import { PrivacyPolicy } from './components/PrivacyPolicy';
 import { TermsOfService } from './components/TermsOfService';
 import { LogoPreview } from './components/LogoPreview';
 import { Logo } from './components/Logo';
-import { supabase } from './lib/supabase';
+import { LanguageSwitch } from './components/LanguageSwitch';
+import { useLanguage } from './contexts/LanguageContext';
 import { usePoints } from './hooks/usePoints';
+import { supabase } from './lib/supabase';
 import type { User } from '@supabase/supabase-js';
 
-function App() {
+export default function App() {
+  const { t } = useLanguage();
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isPointsStoreOpen, setIsPointsStoreOpen] = useState(false);
@@ -108,7 +111,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-fun-red via-fun-mint to-fun-yellow relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-fun-blue via-fun-mint to-fun-yellow relative overflow-hidden">
       <div className="fun-pattern absolute inset-0"></div>
       
       <Routes>
@@ -126,19 +129,20 @@ function App() {
                     <Logo />
                   </Link>
                   <div className="flex flex-wrap items-center gap-3">
+                    <LanguageSwitch />
                     {user ? (
                       <>
                         <div className="flex flex-wrap items-center gap-2">
                           <div className="badge-fun flex items-center space-x-1">
-                            <span className="text-fun-red font-medium truncate max-w-[150px]">{user.email}</span>
+                            <span className="text-fun-blue font-medium truncate max-w-[150px]">{user.email}</span>
                           </div>
                           <button
                             onClick={() => setIsPointsStoreOpen(true)}
                             className="badge-fun flex items-center space-x-1 hover:scale-105 transition-transform cursor-pointer"
                           >
                             <Coins className="h-4 w-4 text-fun-yellow bounce-fun" />
-                            <span className="font-medium text-fun-red">
-                              {pointsLoading ? '...' : points} points
+                            <span className="font-medium text-fun-blue">
+                              {pointsLoading ? '...' : points} {t('points')}
                             </span>
                           </button>
                         </div>
@@ -147,7 +151,7 @@ function App() {
                           className="btn-fun px-4 sm:px-6 py-2 text-white font-medium rounded-full flex items-center space-x-2"
                         >
                           <LogOut className="h-4 w-4" />
-                          <span className="hidden sm:inline">Sign Out</span>
+                          <span className="hidden sm:inline">{t('signout')}</span>
                         </button>
                       </>
                     ) : (
@@ -159,7 +163,7 @@ function App() {
                           }}
                           className="btn-fun px-4 sm:px-6 py-2 text-white font-medium rounded-full"
                         >
-                          Sign In
+                          {t('signin')}
                         </button>
                         <button
                           onClick={() => {
@@ -169,7 +173,7 @@ function App() {
                           className="btn-fun px-4 sm:px-6 py-2 text-white font-medium rounded-full flex items-center space-x-2"
                         >
                           <Sparkles className="h-4 w-4" />
-                          <span>Join Now!</span>
+                          <span>{t('signup')}</span>
                         </button>
                       </>
                     )}
@@ -206,91 +210,101 @@ function App() {
                 />
               ) : (
                 <>
+                  {/* Hero Section */}
+                  <div className="text-center mb-12">
+                    <h1 className="text-4xl sm:text-5xl font-bold text-white mb-4">
+                      {t('hero_title')}
+                    </h1>
+                    <p className="text-xl text-white/80">
+                      {t('hero_subtitle')}
+                    </p>
+                  </div>
+
                   {/* Action Cards */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8 mb-8 sm:mb-12">
-                    {/* My Agents Card */}
-                    <div className="fun-card p-6 sm:p-8">
-                      <div className="flex items-center space-x-3 mb-4 sm:mb-6">
-                        <Bot className="h-6 w-6 sm:h-8 sm:w-8 text-fun-red float-animation" />
-                        <h2 className="text-xl sm:text-2xl font-bold text-fun-red">My AI Squad</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-8 mb-12">
+                    {/* My AI Squad Card */}
+                    <div className="fun-card p-6 sm:p-8 transform hover:scale-105 transition-all duration-300">
+                      <div className="flex items-center space-x-3 mb-4">
+                        <Bot className="h-8 w-8 text-fun-blue float-animation" />
+                        <h2 className="text-xl font-bold text-fun-blue">{t('my_ai_squad')}</h2>
                       </div>
-                      <p className="text-gray-600 mb-4 sm:mb-6 text-sm sm:text-base">
-                        Create and manage your own AI friends! Make them unique and awesome! ✨
+                      <p className="text-gray-600 mb-6">
+                        {t('squad_description')}
                       </p>
                       <button
                         onClick={() => user ? setShowMyAgents(true) : setIsAuthModalOpen(true)}
-                        className="btn-fun w-full py-2 sm:py-3 px-4 sm:px-6 text-white font-medium rounded-full flex items-center justify-center space-x-2 text-sm sm:text-base"
+                        className="btn-fun w-full py-3 text-white font-medium rounded-full flex items-center justify-center space-x-2"
                       >
-                        <Users className="h-4 w-4 sm:h-5 sm:w-5" />
-                        <span>{user ? 'View My Squad' : 'Join to Create'}</span>
+                        <Users className="h-5 w-5" />
+                        <span>{user ? t('view_squad') : t('join_message')}</span>
                       </button>
                     </div>
 
                     {/* Points Card */}
-                    <div className="fun-card p-6 sm:p-8">
-                      <div className="flex items-center space-x-3 mb-4 sm:mb-6">
-                        <Coins className="h-6 w-6 sm:h-8 sm:w-8 text-fun-yellow bounce-fun" />
-                        <h2 className="text-xl sm:text-2xl font-bold text-fun-yellow">Power Points</h2>
+                    <div className="fun-card p-6 sm:p-8 transform hover:scale-105 transition-all duration-300">
+                      <div className="flex items-center space-x-3 mb-4">
+                        <Coins className="h-8 w-8 text-fun-yellow bounce-fun" />
+                        <h2 className="text-xl font-bold text-fun-yellow">{t('points')}</h2>
                       </div>
-                      <p className="text-gray-600 mb-4 sm:mb-6 text-sm sm:text-base">
-                        Get points to chat more! The more you chat, the more fun you have! 🌟
+                      <p className="text-gray-600 mb-6">
+                        {t('points_description')}
                       </p>
                       <button
                         onClick={() => user ? setIsPointsStoreOpen(true) : setIsAuthModalOpen(true)}
-                        className="btn-fun w-full py-2 sm:py-3 px-4 sm:px-6 text-white font-medium rounded-full flex items-center justify-center space-x-2 text-sm sm:text-base"
+                        className="btn-fun w-full py-3 text-white font-medium rounded-full flex items-center justify-center space-x-2"
                       >
-                        <Zap className="h-4 w-4 sm:h-5 sm:w-5" />
-                        <span>{user ? 'Get More Points!' : 'Get Started'}</span>
+                        <Zap className="h-5 w-5" />
+                        <span>{user ? t('get_points') : t('get_started')}</span>
                       </button>
                     </div>
 
-                    {/* Create Agent Card */}
-                    <div className="fun-card p-6 sm:p-8">
-                      <div className="flex items-center space-x-3 mb-4 sm:mb-6">
-                        <Sparkles className="h-6 w-6 sm:h-8 sm:w-8 text-fun-mint float-animation" />
-                        <h2 className="text-xl sm:text-2xl font-bold text-fun-mint">Create Friend</h2>
+                    {/* Create Friend Card */}
+                    <div className="fun-card p-6 sm:p-8 transform hover:scale-105 transition-all duration-300">
+                      <div className="flex items-center space-x-3 mb-4">
+                        <Sparkles className="h-8 w-8 text-fun-mint float-animation" />
+                        <h2 className="text-xl font-bold text-fun-mint">{t('create_friend')}</h2>
                       </div>
-                      <p className="text-gray-600 mb-4 sm:mb-6 text-sm sm:text-base">
-                        Design your perfect AI buddy! Give them a cool personality! 🎨
+                      <p className="text-gray-600 mb-6">
+                        {t('create_description')}
                       </p>
                       <button
                         onClick={() => user ? setShowCreateAgent(true) : setIsAuthModalOpen(true)}
-                        className="btn-fun w-full py-2 sm:py-3 px-4 sm:px-6 text-white font-medium rounded-full flex items-center justify-center space-x-2 text-sm sm:text-base"
+                        className="btn-fun w-full py-3 text-white font-medium rounded-full flex items-center justify-center space-x-2"
                       >
-                        <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
-                        <span>{user ? 'Create New Friend' : 'Join to Create'}</span>
+                        <Plus className="h-5 w-5" />
+                        <span>{user ? t('create_friend') : t('join_message')}</span>
                       </button>
                     </div>
                   </div>
 
                   {/* Marketplace Section */}
-                  <section>
-                    <div className="flex items-center space-x-3 mb-6 sm:mb-8">
-                      <MessageSquare className="h-6 w-6 sm:h-8 sm:w-8 text-white glow-animation" />
-                      <h2 className="text-2xl sm:text-3xl font-bold text-white">
-                        Available Friends 
-                        <span className="emoji-float ml-2">✨</span>
+                  <section className="relative">
+                    <div className="text-center mb-8">
+                      <h2 className="text-3xl font-bold text-white mb-3">
+                        {t('marketplace_title')}
                       </h2>
+                      <p className="text-xl text-white/80">
+                        {t('marketplace_subtitle')}
+                      </p>
                     </div>
                     
                     {user ? (
                       <Marketplace onSelectAgent={handleSelectAgent} />
                     ) : (
-                      <div className="fun-card p-8 sm:p-12 text-center">
-                        <Bot className="h-12 w-12 sm:h-16 sm:w-16 text-fun-red mx-auto mb-4 sm:mb-6 bounce-fun" />
-                        <h3 className="text-xl sm:text-2xl font-bold text-fun-red mb-3 sm:mb-4">
-                          Join the Fun! 
-                          <span className="emoji-float ml-2">🎉</span>
+                      <div className="fun-card p-12 text-center">
+                        <Bot className="h-16 w-16 text-fun-blue mx-auto mb-6 bounce-fun" />
+                        <h3 className="text-2xl font-bold text-fun-blue mb-4">
+                          {t('join_fun')}
                         </h3>
-                        <p className="text-gray-600 mb-6 sm:mb-8 text-base sm:text-lg">
-                          Create an account to chat with awesome AI friends!
+                        <p className="text-gray-600 mb-8 text-lg">
+                          {t('join_message')}
                         </p>
                         <button
                           onClick={() => setIsAuthModalOpen(true)}
-                          className="btn-fun px-6 sm:px-8 py-3 sm:py-4 text-white font-medium text-base sm:text-lg rounded-full inline-flex items-center space-x-2"
+                          className="btn-fun px-8 py-4 text-white font-medium rounded-full inline-flex items-center space-x-2 text-lg"
                         >
-                          <Sparkles className="h-4 w-4 sm:h-5 sm:w-5" />
-                          <span>Get Started!</span>
+                          <Sparkles className="h-5 w-5" />
+                          <span>{t('get_started')}</span>
                         </button>
                       </div>
                     )}
@@ -299,8 +313,12 @@ function App() {
                   {/* Footer Links */}
                   <footer className="mt-12 text-center">
                     <div className="space-x-4 text-white/80">
-                      <Link to="/privacy-policy" className="hover:text-white">Privacy Policy</Link>
-                      <Link to="/terms-of-service" className="hover:text-white">Terms of Service</Link>
+                      <Link to="/privacy-policy" className="hover:text-white">
+                        {t('privacy_policy')}
+                      </Link>
+                      <Link to="/terms-of-service" className="hover:text-white">
+                        {t('terms_of_service')}
+                      </Link>
                     </div>
                   </footer>
                 </>
@@ -333,5 +351,3 @@ function App() {
     </div>
   );
 }
-
-export default App;

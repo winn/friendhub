@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Star, X, Send } from 'lucide-react';
 import { api } from '../lib/api';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface RatingModalProps {
   agentId: string;
@@ -11,6 +12,7 @@ interface RatingModalProps {
 }
 
 export function RatingModal({ agentId, agentName, userId, onClose, onSuccess }: RatingModalProps) {
+  const { t } = useLanguage();
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
   const [comment, setComment] = useState('');
@@ -20,7 +22,7 @@ export function RatingModal({ agentId, agentName, userId, onClose, onSuccess }: 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (rating === 0) {
-      setError('Please select a rating');
+      setError(t('select_rating'));
       return;
     }
     
@@ -42,14 +44,14 @@ export function RatingModal({ agentId, agentName, userId, onClose, onSuccess }: 
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to submit rating');
+        throw new Error(data.error || t('error'));
       }
 
       onSuccess();
       onClose();
     } catch (err) {
       console.error('Rating error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to submit rating');
+      setError(err instanceof Error ? err.message : t('error'));
     } finally {
       setIsSubmitting(false);
     }
@@ -66,7 +68,7 @@ export function RatingModal({ agentId, agentName, userId, onClose, onSuccess }: 
         </button>
 
         <h2 className="text-2xl font-bold text-gray-900 mb-6">
-          Rate your chat with {agentName} ✨
+          {t('rate_chat')} {agentName} ✨
         </h2>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -93,14 +95,14 @@ export function RatingModal({ agentId, agentName, userId, onClose, onSuccess }: 
               ))}
             </div>
             <p className="mt-2 text-sm text-gray-600">
-              {rating ? `You rated ${rating} star${rating !== 1 ? 's' : ''}` : 'Select your rating'}
+              {rating ? `${t('you_rated')} ${rating} ${t('stars')}` : t('select_rating')}
             </p>
           </div>
 
           {/* Comment */}
           <div>
             <label htmlFor="comment" className="block text-sm font-medium text-gray-700 mb-2">
-              Your Review (Optional)
+              {t('write_review')}
             </label>
             <textarea
               id="comment"
@@ -108,7 +110,7 @@ export function RatingModal({ agentId, agentName, userId, onClose, onSuccess }: 
               onChange={(e) => setComment(e.target.value)}
               rows={4}
               className="w-full rounded-xl border-2 border-primary-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all duration-300"
-              placeholder="Share your experience..."
+              placeholder={t('share_experience')}
             />
           </div>
 
@@ -124,11 +126,11 @@ export function RatingModal({ agentId, agentName, userId, onClose, onSuccess }: 
             className="btn-fun w-full py-3 text-white font-medium rounded-full inline-flex items-center justify-center space-x-2"
           >
             {isSubmitting ? (
-              'Submitting...'
+              t('processing')
             ) : (
               <>
                 <Send className="h-5 w-5" />
-                <span>Submit Rating</span>
+                <span>{t('submit_rating')}</span>
               </>
             )}
           </button>

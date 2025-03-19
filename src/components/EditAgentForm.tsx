@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bot, Save, X, Image as ImageIcon, ArrowLeft, Sparkles, MessageSquare, Link as LinkIcon, Copy, Check } from 'lucide-react';
 import { api } from '../lib/api';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface EditAgentFormProps {
   onBack: () => void;
@@ -23,6 +24,8 @@ interface ChannelConfig {
 }
 
 export function EditAgentForm({ onBack, onSuccess }: EditAgentFormProps) {
+  const { t } = useLanguage();
+  
   // Get agent data from localStorage
   const agentId = localStorage.getItem('selectedAgentId') || '';
   const initialName = localStorage.getItem('selectedAgentName') || '';
@@ -71,7 +74,7 @@ export function EditAgentForm({ onBack, onSuccess }: EditAgentFormProps) {
         });
         
         if (!response.ok) {
-          throw new Error('Failed to fetch channel configuration');
+          throw new Error(t('error_fetch_config'));
         }
 
         const data = await response.json();
@@ -93,14 +96,14 @@ export function EditAgentForm({ onBack, onSuccess }: EditAgentFormProps) {
         }
       } catch (err) {
         console.error('Error fetching channel config:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch channel configuration');
+        setError(err instanceof Error ? err.message : t('error_fetch_config'));
       }
     };
 
     if (agentId && showChannelSettings) {
       fetchChannelConfig();
     }
-  }, [agentId, showChannelSettings]);
+  }, [agentId, showChannelSettings, t]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,7 +128,7 @@ export function EditAgentForm({ onBack, onSuccess }: EditAgentFormProps) {
 
       if (!agentResponse.ok) {
         const data = await agentResponse.json();
-        throw new Error(data.error || 'Failed to update agent');
+        throw new Error(data.error || t('error_update_agent'));
       }
 
       // Update channel config if changed
@@ -147,7 +150,7 @@ export function EditAgentForm({ onBack, onSuccess }: EditAgentFormProps) {
 
         if (!channelResponse.ok) {
           const data = await channelResponse.json();
-          throw new Error(data.error || 'Failed to update channel configuration');
+          throw new Error(data.error || t('error_update_config'));
         }
       }
 
@@ -164,7 +167,7 @@ export function EditAgentForm({ onBack, onSuccess }: EditAgentFormProps) {
       }, 1500);
     } catch (err) {
       console.error('Error updating agent:', err);
-      setError(err instanceof Error ? err.message : 'Failed to update agent');
+      setError(err instanceof Error ? err.message : t('error'));
     } finally {
       setIsLoading(false);
     }
@@ -205,14 +208,14 @@ export function EditAgentForm({ onBack, onSuccess }: EditAgentFormProps) {
           <button
             onClick={onBack}
             className="p-2 hover:bg-fun-red/10 rounded-full transition-colors"
-            aria-label="Go back"
+            aria-label={t('back')}
           >
             <ArrowLeft className="h-5 w-5 text-fun-red" />
           </button>
           <div className="flex items-center space-x-3">
             <Sparkles className="h-7 w-7 text-fun-mint float-animation" />
             <h2 className="text-2xl font-bold bg-gradient-to-r from-fun-red to-fun-mint bg-clip-text text-transparent">
-              Edit AI Friend ✨
+              {t('edit_friend')} ✨
             </h2>
           </div>
         </div>
@@ -225,20 +228,20 @@ export function EditAgentForm({ onBack, onSuccess }: EditAgentFormProps) {
             {formData.imageUrl && !imagePreviewError ? (
               <img
                 src={formData.imageUrl}
-                alt="Agent preview"
+                alt={t('avatar')}
                 className="w-full h-full object-cover"
                 onError={() => setImagePreviewError(true)}
               />
             ) : (
               <div className="flex flex-col items-center text-primary-400">
                 <ImageIcon className="h-12 w-12 mb-2 float-animation" />
-                <span className="text-sm">Add an avatar!</span>
+                <span className="text-sm">{t('add_avatar')}</span>
               </div>
             )}
           </div>
           <div className="flex-1">
             <label htmlFor="imageUrl" className="block text-sm font-medium text-gray-700 mb-2">
-              Avatar URL
+              {t('avatar_url')}
             </label>
             <input
               type="url"
@@ -247,11 +250,11 @@ export function EditAgentForm({ onBack, onSuccess }: EditAgentFormProps) {
               value={formData.imageUrl}
               onChange={handleChange}
               className="w-full rounded-xl border-2 border-primary-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all duration-300"
-              placeholder="Paste image URL here..."
+              placeholder={t('paste_image_url')}
             />
             {imagePreviewError && (
               <p className="mt-2 text-sm text-red-600">
-                Oops! That image didn't work. Try another one! 🖼️
+                {t('image_error')}
               </p>
             )}
           </div>
@@ -260,7 +263,7 @@ export function EditAgentForm({ onBack, onSuccess }: EditAgentFormProps) {
         {/* Name Field */}
         <div>
           <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-            Agent Name *
+            {t('friend_name')} *
           </label>
           <input
             type="text"
@@ -270,14 +273,14 @@ export function EditAgentForm({ onBack, onSuccess }: EditAgentFormProps) {
             value={formData.name}
             onChange={handleChange}
             className="w-full rounded-xl border-2 border-primary-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all duration-300"
-            placeholder="Give your AI friend a cool name!"
+            placeholder={t('enter_friend_name')}
           />
         </div>
 
         {/* Personality Field */}
         <div>
           <label htmlFor="personality" className="block text-sm font-medium text-gray-700 mb-2">
-            Personality
+            {t('personality')}
           </label>
           <textarea
             id="personality"
@@ -286,14 +289,14 @@ export function EditAgentForm({ onBack, onSuccess }: EditAgentFormProps) {
             onChange={handleChange}
             rows={3}
             className="w-full rounded-xl border-2 border-primary-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all duration-300"
-            placeholder="What's their vibe? Fun? Silly? Smart? 🌟"
+            placeholder={t('personality_placeholder')}
           />
         </div>
 
         {/* Instructions Field */}
         <div>
           <label htmlFor="instructions" className="block text-sm font-medium text-gray-700 mb-2">
-            Instructions
+            {t('instructions')}
           </label>
           <textarea
             id="instructions"
@@ -302,14 +305,14 @@ export function EditAgentForm({ onBack, onSuccess }: EditAgentFormProps) {
             onChange={handleChange}
             rows={3}
             className="w-full rounded-xl border-2 border-primary-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all duration-300"
-            placeholder="What should they help with? 🤔"
+            placeholder={t('instructions_placeholder')}
           />
         </div>
 
         {/* Prohibitions Field */}
         <div>
           <label htmlFor="prohibition" className="block text-sm font-medium text-gray-700 mb-2">
-            Prohibitions
+            {t('prohibitions')}
           </label>
           <textarea
             id="prohibition"
@@ -318,7 +321,7 @@ export function EditAgentForm({ onBack, onSuccess }: EditAgentFormProps) {
             onChange={handleChange}
             rows={3}
             className="w-full rounded-xl border-2 border-primary-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all duration-300"
-            placeholder="What topics should they avoid? 🚫"
+            placeholder={t('prohibitions_placeholder')}
           />
         </div>
 
@@ -330,7 +333,7 @@ export function EditAgentForm({ onBack, onSuccess }: EditAgentFormProps) {
             className="flex items-center space-x-2 text-fun-mint hover:text-fun-mint/80 transition-colors"
           >
             <MessageSquare className="h-5 w-5" />
-            <span className="font-medium">Channel Settings</span>
+            <span className="font-medium">{t('channel_settings')}</span>
           </button>
 
           {showChannelSettings && (
@@ -342,7 +345,7 @@ export function EditAgentForm({ onBack, onSuccess }: EditAgentFormProps) {
                 </div>
 
                 <div className="space-y-6">
-                  {/* Webhook URL - Show this first */}
+                  {/* Webhook URL */}
                   <div className="bg-primary-50 p-4 rounded-xl">
                     <div className="flex items-center justify-between mb-2">
                       <label className="block text-sm font-medium text-gray-700">
@@ -356,12 +359,12 @@ export function EditAgentForm({ onBack, onSuccess }: EditAgentFormProps) {
                         {copied ? (
                           <>
                             <Check className="h-4 w-4" />
-                            <span className="text-sm">Copied!</span>
+                            <span className="text-sm">{t('copied')}</span>
                           </>
                         ) : (
                           <>
                             <Copy className="h-4 w-4" />
-                            <span className="text-sm">Copy URL</span>
+                            <span className="text-sm">{t('copy_url')}</span>
                           </>
                         )}
                       </button>
@@ -375,14 +378,14 @@ export function EditAgentForm({ onBack, onSuccess }: EditAgentFormProps) {
                       />
                     </div>
                     <p className="mt-2 text-sm text-gray-600">
-                      Copy this URL and paste it in your LINE Channel settings under Messaging API {'>'} Webhook URL
+                      {t('webhook_instructions')}
                     </p>
                   </div>
 
                   {/* Access Token */}
                   <div>
                     <label htmlFor="accessToken" className="block text-sm font-medium text-gray-700 mb-2">
-                      Channel Access Token
+                      {t('line_access_token')}
                     </label>
                     <input
                       type="password"
@@ -391,14 +394,14 @@ export function EditAgentForm({ onBack, onSuccess }: EditAgentFormProps) {
                       value={channelConfig.config.accessToken || ''}
                       onChange={handleChannelConfigChange}
                       className="w-full rounded-xl border-2 border-primary-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all duration-300"
-                      placeholder="Enter your LINE Channel Access Token"
+                      placeholder={t('enter_access_token')}
                     />
                   </div>
 
                   {/* Secret Token */}
                   <div>
                     <label htmlFor="secretToken" className="block text-sm font-medium text-gray-700 mb-2">
-                      Channel Secret Token
+                      {t('line_secret_token')}
                     </label>
                     <input
                       type="password"
@@ -407,7 +410,7 @@ export function EditAgentForm({ onBack, onSuccess }: EditAgentFormProps) {
                       value={channelConfig.config.secretToken || ''}
                       onChange={handleChannelConfigChange}
                       className="w-full rounded-xl border-2 border-primary-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all duration-300"
-                      placeholder="Enter your LINE Channel Secret"
+                      placeholder={t('enter_secret_token')}
                     />
                   </div>
                 </div>
@@ -424,7 +427,7 @@ export function EditAgentForm({ onBack, onSuccess }: EditAgentFormProps) {
 
         {success && (
           <div className="text-green-600 text-sm bg-green-50 p-4 rounded-xl">
-            Yay! Your AI friend has been updated! ✨
+            {t('friend_updated')} ✨
           </div>
         )}
 
@@ -434,7 +437,7 @@ export function EditAgentForm({ onBack, onSuccess }: EditAgentFormProps) {
             onClick={onBack}
             className="px-6 py-3 rounded-full border-2 border-fun-red text-fun-red font-medium hover:bg-fun-red/5 transition-colors"
           >
-            Cancel
+            {t('cancel')}
           </button>
           <button
             type="submit"
@@ -442,11 +445,11 @@ export function EditAgentForm({ onBack, onSuccess }: EditAgentFormProps) {
             className="btn-fun px-8 py-3 rounded-full text-white font-medium text-lg inline-flex items-center space-x-2"
           >
             {isLoading ? (
-              'Updating...'
+              t('updating')
             ) : (
               <>
                 <Save className="h-5 w-5 mr-2" />
-                Save Changes
+                {t('save_changes')}
               </>
             )}
           </button>

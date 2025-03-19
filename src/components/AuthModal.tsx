@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { api } from '../lib/api';
 import { X, Sparkles, Mail, Lock, User, AlertOctagon, CheckCircle } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -10,6 +11,7 @@ interface AuthModalProps {
 }
 
 export function AuthModal({ isOpen, onClose, mode: initialMode }: AuthModalProps) {
+  const { t } = useLanguage();
   const [mode, setMode] = useState(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -24,7 +26,6 @@ export function AuthModal({ isOpen, onClose, mode: initialMode }: AuthModalProps
     setMode(initialMode);
   }, [initialMode]);
 
-  // Reset states when modal is closed
   useEffect(() => {
     if (!isOpen) {
       setError(null);
@@ -38,12 +39,9 @@ export function AuthModal({ isOpen, onClose, mode: initialMode }: AuthModalProps
 
   if (!isOpen) return null;
 
-  // Debounced email check with rate limiting
   const checkEmailExists = async (email: string) => {
-    // Don't check if email is empty or invalid
     if (!email || !email.includes('@')) return false;
 
-    // Check rate limit (60 seconds between checks)
     const now = Date.now();
     const timeSinceLastCheck = now - lastEmailCheck;
     if (timeSinceLastCheck < 60000) {
@@ -54,7 +52,6 @@ export function AuthModal({ isOpen, onClose, mode: initialMode }: AuthModalProps
       setIsCheckingEmail(true);
       setLastEmailCheck(now);
 
-      // Use admin API to check if user exists
       const { data, error } = await supabase
         .from('users')
         .select('id')
@@ -67,7 +64,7 @@ export function AuthModal({ isOpen, onClose, mode: initialMode }: AuthModalProps
       }
 
       if (data) {
-        setError('This email is already registered. Please sign in instead.');
+        setError(t('email_exists'));
         return true;
       }
 
@@ -88,7 +85,7 @@ export function AuthModal({ isOpen, onClose, mode: initialMode }: AuthModalProps
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: 'https://aifriendhub.app',
+          redirectTo: 'https://aifriendhub.app/',
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -98,11 +95,10 @@ export function AuthModal({ isOpen, onClose, mode: initialMode }: AuthModalProps
 
       if (error) throw error;
       
-      // The redirect will happen automatically
       onClose();
     } catch (err) {
       console.error('Google login error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to sign in with Google');
+      setError(err instanceof Error ? err.message : t('error'));
     } finally {
       setLoading(false);
     }
@@ -115,14 +111,12 @@ export function AuthModal({ isOpen, onClose, mode: initialMode }: AuthModalProps
 
     try {
       if (mode === 'signup') {
-        // Final email check before signup
         const emailExists = await checkEmailExists(email);
         if (emailExists) {
           setLoading(false);
           return;
         }
 
-        // Proceed with signup
         const { error: signUpError } = await supabase.auth.signUp({
           email,
           password,
@@ -130,23 +124,20 @@ export function AuthModal({ isOpen, onClose, mode: initialMode }: AuthModalProps
             data: {
               name: name || undefined
             },
-            emailRedirectTo: 'https://aifriendhub.app'
+            emailRedirectTo: 'https://aifriendhub.app/'
           }
         });
 
         if (signUpError) {
-          // Handle specific signup errors
           if (signUpError.message.toLowerCase().includes('email already')) {
-            setError('This email is already registered. Please sign in instead.');
+            setError(t('email_exists'));
             return;
           }
           throw signUpError;
         }
 
-        // Show success message
         setSignupSuccess(true);
       } else {
-        // Handle sign in
         const { error: signInError } = await supabase.auth.signInWithPassword({
           email,
           password,
@@ -154,7 +145,7 @@ export function AuthModal({ isOpen, onClose, mode: initialMode }: AuthModalProps
 
         if (signInError) {
           if (signInError.message.toLowerCase().includes('invalid credentials')) {
-            setError('Invalid email or password');
+            setError(t('invalid_credentials'));
             return;
           }
           throw signInError;
@@ -164,17 +155,10 @@ export function AuthModal({ isOpen, onClose, mode: initialMode }: AuthModalProps
       }
     } catch (err) {
       console.error('Auth error:', err);
-      setError(err instanceof Error ? err.message : 'An error occurred during authentication');
+      setError(err instanceof Error ? err.message : t('error'));
     } finally {
       setLoading(false);
     }
-  };
-
-  // Debounced email input handler
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newEmail = e.target.value;
-    setEmail(newEmail);
-    setError(null);
   };
 
   return (
@@ -200,16 +184,16 @@ export function AuthModal({ isOpen, onClose, mode: initialMode }: AuthModalProps
           <div className="text-center">
             <CheckCircle className="h-16 w-16 text-fun-mint mx-auto mb-4 bounce-fun" />
             <h3 className="text-xl font-bold text-gray-900 mb-4">
-              Almost there! ✨
+              {t('verification_sent')}
             </h3>
             <p className="text-gray-600 mb-6">
-              We've sent a verification link to <strong>{email}</strong>. Please check your email and click the link to activate your account.
+              {t('check_email')}
             </p>
             <button
               onClick={onClose}
               className="btn-fun px-6 py-3 text-white font-medium rounded-full"
             >
-              Got it!
+              {t('got_it')}
             </button>
           </div>
         ) : (
@@ -217,11 +201,10 @@ export function AuthModal({ isOpen, onClose, mode: initialMode }: AuthModalProps
             <div className="flex items-center space-x-3 mb-8">
               <Sparkles className="h-8 w-8 text-primary-600 float-animation" />
               <h2 className="text-2xl font-bold bg-gradient-to-r from-primary-600 to-fun-purple bg-clip-text text-transparent">
-                {mode === 'signin' ? 'Welcome Back! ✨' : 'Join the Fun! 🚀'}
+                {mode === 'signin' ? t('welcome_back') : t('join_fun')}
               </h2>
             </div>
 
-            {/* Google Sign In Button */}
             <button
               onClick={handleGoogleLogin}
               disabled={loading}
@@ -232,7 +215,7 @@ export function AuthModal({ isOpen, onClose, mode: initialMode }: AuthModalProps
                 alt="Google"
                 className="w-5 h-5"
               />
-              <span>Continue with Google</span>
+              <span>{t('continue_with_google')}</span>
             </button>
 
             <div className="relative mb-6">
@@ -240,7 +223,7 @@ export function AuthModal({ isOpen, onClose, mode: initialMode }: AuthModalProps
                 <div className="w-full border-t border-gray-200"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-4 text-gray-500 bg-white">Or continue with email</span>
+                <span className="px-4 text-gray-500 bg-white">{t('or_continue_with_email')}</span>
               </div>
             </div>
 
@@ -248,7 +231,7 @@ export function AuthModal({ isOpen, onClose, mode: initialMode }: AuthModalProps
               {mode === 'signup' && (
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                    Name (optional)
+                    {t('name')}
                   </label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-primary-400" />
@@ -258,7 +241,7 @@ export function AuthModal({ isOpen, onClose, mode: initialMode }: AuthModalProps
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       className="pl-10 w-full rounded-full border-2 border-primary-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all duration-300"
-                      placeholder="What should we call you?"
+                      placeholder={t('what_should_we_call_you')}
                     />
                   </div>
                 </div>
@@ -266,7 +249,7 @@ export function AuthModal({ isOpen, onClose, mode: initialMode }: AuthModalProps
 
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
+                  {t('email')}
                 </label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-primary-400" />
@@ -275,7 +258,10 @@ export function AuthModal({ isOpen, onClose, mode: initialMode }: AuthModalProps
                     id="email"
                     required
                     value={email}
-                    onChange={handleEmailChange}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      setError(null);
+                    }}
                     onBlur={async (e) => {
                       if (mode === 'signup' && e.target.value) {
                         await checkEmailExists(e.target.value);
@@ -289,7 +275,7 @@ export function AuthModal({ isOpen, onClose, mode: initialMode }: AuthModalProps
 
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                  Password
+                  {t('password')}
                 </label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-primary-400" />
@@ -311,16 +297,16 @@ export function AuthModal({ isOpen, onClose, mode: initialMode }: AuthModalProps
                 className="btn-fun w-full py-3 px-6 rounded-full text-white font-medium text-lg relative overflow-hidden group disabled:opacity-50"
               >
                 <span className="relative z-10">
-                  {loading ? 'Processing...' : 
-                   isCheckingEmail ? 'Checking...' : 
-                   mode === 'signin' ? 'Sign In' : 'Create Account'}
+                  {loading ? t('processing') : 
+                   isCheckingEmail ? t('checking') : 
+                   mode === 'signin' ? t('signin') : t('create_account')}
                 </span>
                 <div className="absolute inset-0 bg-gradient-to-r from-fun-pink to-fun-purple opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </button>
 
               {mode === 'signup' ? (
                 <p className="text-center text-sm text-gray-600">
-                  Already have an account?{' '}
+                  {t('already_have_account')}{' '}
                   <button
                     type="button"
                     onClick={() => {
@@ -329,12 +315,12 @@ export function AuthModal({ isOpen, onClose, mode: initialMode }: AuthModalProps
                     }}
                     className="text-fun-red hover:text-fun-red/80 font-medium"
                   >
-                    Sign in instead
+                    {t('signin')}
                   </button>
                 </p>
               ) : (
                 <p className="text-center text-sm text-gray-600">
-                  Don't have an account?{' '}
+                  {t('dont_have_account')}{' '}
                   <button
                     type="button"
                     onClick={() => {
@@ -343,7 +329,7 @@ export function AuthModal({ isOpen, onClose, mode: initialMode }: AuthModalProps
                     }}
                     className="text-fun-red hover:text-fun-red/80 font-medium"
                   >
-                    Create one now
+                    {t('create_account')}
                   </button>
                 </p>
               )}

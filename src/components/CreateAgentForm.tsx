@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bot, Save, X, Image as ImageIcon, ArrowLeft, Sparkles, Wand2 } from 'lucide-react';
 import { api } from '../lib/api';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface CreateAgentFormProps {
   userId: string;
@@ -31,6 +32,7 @@ const DEFAULT_CATEGORIES = {
 };
 
 export function CreateAgentForm({ userId, onBack }: CreateAgentFormProps) {
+  const { t } = useLanguage();
   const [formData, setFormData] = useState({
     name: '',
     personality: '',
@@ -73,7 +75,7 @@ export function CreateAgentForm({ userId, onBack }: CreateAgentFormProps) {
     setError(null);
 
     const payload = {
-      userId: userId, // Using userId directly from props
+      userId: userId,
       agentName: formData.name,
       agentProfileImage: formData.imageUrl || undefined,
       agentMainCategory: formData.mainCategory || undefined,
@@ -95,7 +97,7 @@ export function CreateAgentForm({ userId, onBack }: CreateAgentFormProps) {
         onBack();
       }, 2000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create agent');
+      setError(err instanceof Error ? err.message : t('error'));
     } finally {
       setIsLoading(false);
     }
@@ -104,7 +106,6 @@ export function CreateAgentForm({ userId, onBack }: CreateAgentFormProps) {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => {
-      // Reset subCategory when mainCategory changes
       if (name === 'mainCategory') {
         return { ...prev, [name]: value, subCategory: '' };
       }
@@ -129,7 +130,7 @@ export function CreateAgentForm({ userId, onBack }: CreateAgentFormProps) {
           <div className="flex items-center space-x-3">
             <Sparkles className="h-7 w-7 text-primary-600 float-animation" />
             <h2 className="text-2xl font-bold bg-gradient-to-r from-primary-600 to-fun-purple bg-clip-text text-transparent">
-              Create Your AI Friend ✨
+              {t('create_friend')} ✨
             </h2>
           </div>
         </div>
@@ -142,20 +143,20 @@ export function CreateAgentForm({ userId, onBack }: CreateAgentFormProps) {
             {formData.imageUrl && !imagePreviewError ? (
               <img
                 src={formData.imageUrl}
-                alt="Agent preview"
+                alt={t('avatar')}
                 className="w-full h-full object-cover"
                 onError={() => setImagePreviewError(true)}
               />
             ) : (
               <div className="flex flex-col items-center text-primary-400">
                 <ImageIcon className="h-12 w-12 mb-2 float-animation" />
-                <span className="text-sm">Add an avatar!</span>
+                <span className="text-sm">{t('add_avatar')}</span>
               </div>
             )}
           </div>
           <div className="flex-1">
             <label htmlFor="imageUrl" className="block text-sm font-medium text-gray-700 mb-2">
-              Avatar URL
+              {t('avatar_url')}
             </label>
             <input
               type="url"
@@ -164,11 +165,11 @@ export function CreateAgentForm({ userId, onBack }: CreateAgentFormProps) {
               value={formData.imageUrl}
               onChange={handleChange}
               className="w-full rounded-xl border-2 border-primary-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all duration-300"
-              placeholder="Paste image URL here..."
+              placeholder={t('paste_image_url')}
             />
             {imagePreviewError && (
               <p className="mt-2 text-sm text-red-600">
-                Oops! That image didn't work. Try another one! 🖼️
+                {t('image_error')}
               </p>
             )}
           </div>
@@ -177,7 +178,7 @@ export function CreateAgentForm({ userId, onBack }: CreateAgentFormProps) {
         {/* Name Field */}
         <div>
           <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-            Agent Name *
+            {t('friend_name')} *
           </label>
           <input
             type="text"
@@ -187,7 +188,7 @@ export function CreateAgentForm({ userId, onBack }: CreateAgentFormProps) {
             value={formData.name}
             onChange={handleChange}
             className="w-full rounded-xl border-2 border-primary-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all duration-300"
-            placeholder="Give your AI friend a cool name!"
+            placeholder={t('enter_friend_name')}
           />
         </div>
 
@@ -195,7 +196,7 @@ export function CreateAgentForm({ userId, onBack }: CreateAgentFormProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label htmlFor="mainCategory" className="block text-sm font-medium text-gray-700 mb-2">
-              Main Category *
+              {t('main_category')} *
             </label>
             <select
               id="mainCategory"
@@ -205,7 +206,7 @@ export function CreateAgentForm({ userId, onBack }: CreateAgentFormProps) {
               onChange={handleChange}
               className="w-full rounded-xl border-2 border-primary-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all duration-300"
             >
-              <option value="">Select a category</option>
+              <option value="">{t('select_category')}</option>
               {Object.keys(categories).map(category => (
                 <option key={category} value={category}>
                   {category}
@@ -216,7 +217,7 @@ export function CreateAgentForm({ userId, onBack }: CreateAgentFormProps) {
 
           <div>
             <label htmlFor="subCategory" className="block text-sm font-medium text-gray-700 mb-2">
-              Sub Category *
+              {t('sub_category')} *
             </label>
             <select
               id="subCategory"
@@ -227,7 +228,7 @@ export function CreateAgentForm({ userId, onBack }: CreateAgentFormProps) {
               disabled={!formData.mainCategory}
               className="w-full rounded-xl border-2 border-primary-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all duration-300 disabled:opacity-50"
             >
-              <option value="">Select a subcategory</option>
+              <option value="">{t('select_subcategory')}</option>
               {formData.mainCategory && categories[formData.mainCategory]?.map(subcategory => (
                 <option key={subcategory} value={subcategory}>
                   {subcategory}
@@ -240,7 +241,7 @@ export function CreateAgentForm({ userId, onBack }: CreateAgentFormProps) {
         {/* Personality Field */}
         <div>
           <label htmlFor="personality" className="block text-sm font-medium text-gray-700 mb-2">
-            Personality
+            {t('personality')}
           </label>
           <textarea
             id="personality"
@@ -249,14 +250,14 @@ export function CreateAgentForm({ userId, onBack }: CreateAgentFormProps) {
             onChange={handleChange}
             rows={3}
             className="w-full rounded-xl border-2 border-primary-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all duration-300"
-            placeholder="What's their vibe? Fun? Silly? Smart? 🌟"
+            placeholder={t('personality_placeholder')}
           />
         </div>
 
         {/* Instructions Field */}
         <div>
           <label htmlFor="instructions" className="block text-sm font-medium text-gray-700 mb-2">
-            Instructions
+            {t('instructions')}
           </label>
           <textarea
             id="instructions"
@@ -265,14 +266,14 @@ export function CreateAgentForm({ userId, onBack }: CreateAgentFormProps) {
             onChange={handleChange}
             rows={3}
             className="w-full rounded-xl border-2 border-primary-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all duration-300"
-            placeholder="What should they help with? 🤔"
+            placeholder={t('instructions_placeholder')}
           />
         </div>
 
         {/* Prohibitions Field */}
         <div>
           <label htmlFor="prohibition" className="block text-sm font-medium text-gray-700 mb-2">
-            Prohibitions
+            {t('prohibitions')}
           </label>
           <textarea
             id="prohibition"
@@ -281,7 +282,7 @@ export function CreateAgentForm({ userId, onBack }: CreateAgentFormProps) {
             onChange={handleChange}
             rows={3}
             className="w-full rounded-xl border-2 border-primary-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 transition-all duration-300"
-            placeholder="What topics should they avoid? 🚫"
+            placeholder={t('prohibitions_placeholder')}
           />
         </div>
 
@@ -293,7 +294,7 @@ export function CreateAgentForm({ userId, onBack }: CreateAgentFormProps) {
 
         {success && (
           <div className="text-green-600 text-sm bg-green-50 p-4 rounded-xl">
-            Awesome! Your AI friend is ready! ✨
+            {t('friend_created')} ✨
           </div>
         )}
 
@@ -304,11 +305,11 @@ export function CreateAgentForm({ userId, onBack }: CreateAgentFormProps) {
             className="btn-fun inline-flex items-center px-8 py-3 rounded-full text-white font-medium text-lg"
           >
             {isLoading ? (
-              'Creating...'
+              t('creating')
             ) : (
               <>
                 <Wand2 className="h-5 w-5 mr-2" />
-                Create AI Friend
+                {t('create_friend')}
               </>
             )}
           </button>

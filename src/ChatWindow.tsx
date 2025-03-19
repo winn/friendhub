@@ -165,9 +165,8 @@ export function ChatWindow({ userId, onPointsUpdate, onBack }: ChatWindowProps) 
   };
 
   return (
-    <div className="gradient-card h-[calc(100vh-12rem)] sm:h-[600px] rounded-2xl shadow-fun flex flex-col">
-      {/* Chat Header */}
-      <div className="flex-none p-3 sm:p-4 border-b border-primary-100 backdrop-blur-sm rounded-t-2xl flex items-center justify-between">
+    <div className="flex flex-col h-[calc(100vh-2rem)] sm:h-[600px] gradient-card rounded-2xl shadow-fun">
+      <div className="p-3 sm:p-4 border-b border-primary-100 backdrop-blur-sm rounded-t-2xl flex items-center justify-between">
         <div className="flex items-center">
           <button
             onClick={onBack}
@@ -259,14 +258,14 @@ export function ChatWindow({ userId, onPointsUpdate, onBack }: ChatWindowProps) 
 
       {/* Error Message */}
       {error && (
-        <div className="flex-none mx-4 mb-4 p-3 bg-red-50 text-red-600 rounded-xl text-sm">
+        <div className="mx-4 mb-4 p-3 bg-red-50 text-red-600 rounded-xl text-sm">
           {error}
         </div>
       )}
 
       {/* Message Input */}
-      <div className="flex-none p-3 sm:p-4 border-t border-primary-100">
-        <form onSubmit={handleSendMessage} className="flex space-x-2 sm:space-x-3">
+      <form onSubmit={handleSendMessage} className="p-3 sm:p-4 border-t border-primary-100">
+        <div className="flex space-x-2 sm:space-x-3">
           <input
             type="text"
             value={newMessage}
@@ -286,8 +285,8 @@ export function ChatWindow({ userId, onPointsUpdate, onBack }: ChatWindowProps) 
               <Send className="h-4 w-4 sm:h-5 sm:w-5" />
             )}
           </button>
-        </form>
-      </div>
+        </div>
+      </form>
 
       {showRatingModal && (
         <RatingModal

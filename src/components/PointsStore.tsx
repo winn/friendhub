@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Coins, Package, CreditCard, Loader, X } from 'lucide-react';
 import { api } from '../lib/api';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface Package {
   id: string;
-  name: string;
+  package_name: string;
   points: number;
   price: number;
   description?: string;
@@ -18,39 +19,36 @@ interface PointsStoreProps {
 }
 
 export function PointsStore({ userId, onClose, onSuccess }: PointsStoreProps) {
+  const { t } = useLanguage();
   const [packages, setPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
-    const dummyPackages: Package[] = [
-      {
-        id: 'basic',
-        name: 'Starter Pack',
-        points: 100,
-        price: 5,
-        description: 'Perfect for getting started!'
-      },
-      {
-        id: 'popular',
-        name: 'Power Pack',
-        points: 500,
-        price: 20,
-        description: 'Most popular choice!',
-        popular: true
-      },
-      {
-        id: 'premium',
-        name: 'Premium Pack',
-        points: 1200,
-        price: 40,
-        description: 'Best value for power users!'
+    const fetchPackages = async () => {
+      try {
+        const response = await api.points.getPackages();
+        
+        if (response.error) {
+          throw new Error(response.error);
+        }
+
+        if (!response.packages || !Array.isArray(response.packages)) {
+          throw new Error('Invalid response format');
+        }
+
+        setPackages(response.packages);
+      } catch (err) {
+        console.error('Error fetching packages:', err);
+        setError(err instanceof Error ? err.message : t('error'));
+      } finally {
+        setLoading(false);
       }
-    ];
-    setPackages(dummyPackages);
-    setLoading(false);
-  }, []);
+    };
+
+    fetchPackages();
+  }, [t]);
 
   const handlePurchase = async (pkg: Package) => {
     setError(null);
@@ -78,120 +76,121 @@ export function PointsStore({ userId, onClose, onSuccess }: PointsStoreProps) {
       }
 
       if (!data.sessionUrl) {
-        throw new Error('No checkout URL received');
+        throw new Error(t('error_no_checkout_url'));
       }
 
       // Open Stripe checkout in the same window
       window.location.href = data.sessionUrl;
     } catch (err) {
       console.error('Payment setup error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to setup payment. Please try again.');
+      setError(err instanceof Error ? err.message : t('error_payment_setup'));
       setProcessing(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-        <div className="gradient-card max-w-4xl w-full p-8 relative rounded-2xl">
-          <div className="flex flex-col items-center justify-center h-64">
-            <Loader className="h-12 w-12 text-fun-mint animate-spin" />
-            <p className="mt-4 text-gray-600 text-lg animate-pulse">Loading packages... ✨</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="gradient-card max-w-4xl w-full p-8 relative rounded-2xl">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 p-2 hover:bg-primary-100 rounded-full transition-all duration-300"
-        >
-          <X className="h-6 w-6 text-primary-600" />
-        </button>
-
-        <div className="flex items-center space-x-3 mb-8">
-          <Coins className="h-8 w-8 text-fun-yellow bounce-fun" />
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-fun-yellow to-fun-mint bg-clip-text text-transparent">
-            Get More Power Points! ✨
-          </h2>
+      <div className="gradient-card w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-fun">
+        {/* Header */}
+        <div className="sticky top-0 bg-white/95 backdrop-blur-sm border-b border-primary-100 p-4 sm:p-6 flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Coins className="h-6 w-6 sm:h-8 sm:w-8 text-fun-yellow bounce-fun" />
+            <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-fun-yellow to-fun-mint bg-clip-text text-transparent">
+              {t('get_points')} ✨
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-primary-100 rounded-full transition-all duration-300"
+          >
+            <X className="h-5 w-5 sm:h-6 sm:w-6 text-primary-600" />
+          </button>
         </div>
 
-        {error && (
-          <div className="mb-6 text-red-600 text-sm bg-red-50 p-4 rounded-xl">
-            {error}
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {packages.map((pkg) => (
-            <div
-              key={pkg.id}
-              className={`fun-card p-6 relative overflow-hidden ${
-                pkg.popular ? 'ring-4 ring-fun-yellow ring-offset-4' : ''
-              }`}
-            >
-              {pkg.popular && (
-                <div className="absolute top-3 right-3">
-                  <span className="badge-fun bg-fun-yellow/20 text-fun-yellow">
-                    Most Popular ⭐
-                  </span>
+        {/* Content */}
+        <div className="p-4 sm:p-6">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <Loader className="h-12 w-12 text-fun-mint animate-spin" />
+              <p className="mt-4 text-gray-600 text-lg">{t('loading_packages')} ✨</p>
+            </div>
+          ) : (
+            <>
+              {error && (
+                <div className="mb-6 text-red-600 text-sm bg-red-50 p-4 rounded-xl">
+                  {error}
                 </div>
               )}
-              
-              <Package className="h-12 w-12 text-fun-mint mb-4 float-animation" />
-              
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
-                {pkg.name}
-              </h3>
-              
-              <div className="flex items-baseline mb-4">
-                <span className="text-3xl font-bold text-fun-red">
-                  ${pkg.price}
-                </span>
-                <span className="text-gray-500 ml-2">USD</span>
-              </div>
-              
-              <div className="flex items-center space-x-2 text-gray-600 mb-6">
-                <Coins className="h-5 w-5 text-fun-yellow" />
-                <span className="font-medium">{pkg.points.toLocaleString()} points</span>
-              </div>
-              
-              {pkg.description && (
-                <p className="text-gray-600 mb-6">
-                  {pkg.description}
-                </p>
-              )}
-              
-              <button
-                onClick={() => handlePurchase(pkg)}
-                disabled={processing}
-                className="btn-fun w-full py-3 text-white font-medium rounded-full inline-flex items-center justify-center space-x-2 disabled:opacity-50"
-              >
-                {processing ? (
-                  <>
-                    <Loader className="h-5 w-5 animate-spin" />
-                    <span>Processing...</span>
-                  </>
-                ) : (
-                  <>
-                    <CreditCard className="h-5 w-5" />
-                    <span>Purchase Now</span>
-                  </>
-                )}
-              </button>
-            </div>
-          ))}
-        </div>
 
-        <div className="mt-8 text-center text-sm text-gray-500">
-          <p className="flex items-center justify-center">
-            <CreditCard className="h-4 w-4 mr-2" />
-            Secure payments powered by Stripe
-          </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                {packages.map((pkg) => (
+                  <div
+                    key={pkg.id}
+                    className={`fun-card p-4 sm:p-6 relative overflow-hidden transform hover:scale-105 transition-all duration-300 ${
+                      pkg.popular ? 'ring-4 ring-fun-yellow ring-offset-4' : ''
+                    }`}
+                  >
+                    {pkg.popular && (
+                      <div className="absolute top-3 right-3">
+                        <span className="badge-fun bg-fun-yellow/20 text-fun-yellow text-sm">
+                          {t('most_popular')}
+                        </span>
+                      </div>
+                    )}
+                    
+                    <Package className="h-10 w-10 sm:h-12 sm:w-12 text-fun-mint mb-4 float-animation" />
+                    
+                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">
+                      {pkg.package_name}
+                    </h3>
+                    
+                    <div className="flex items-baseline mb-4">
+                      <span className="text-2xl sm:text-3xl font-bold text-fun-red">
+                        ฿{pkg.price}
+                      </span>
+                      <span className="text-gray-500 ml-2">THB</span>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2 text-gray-600 mb-4">
+                      <Coins className="h-5 w-5 text-fun-yellow" />
+                      <span className="font-medium">{pkg.points.toLocaleString()} {t('points')}</span>
+                    </div>
+                    
+                    {pkg.description && (
+                      <p className="text-gray-600 mb-4 text-sm sm:text-base">
+                        {pkg.description}
+                      </p>
+                    )}
+                    
+                    <button
+                      onClick={() => handlePurchase(pkg)}
+                      disabled={processing}
+                      className="btn-fun w-full py-3 text-white font-medium rounded-full inline-flex items-center justify-center space-x-2 disabled:opacity-50"
+                    >
+                      {processing ? (
+                        <>
+                          <Loader className="h-5 w-5 animate-spin" />
+                          <span>{t('processing')}</span>
+                        </>
+                      ) : (
+                        <>
+                          <CreditCard className="h-5 w-5" />
+                          <span>{t('purchase_now')}</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-8 text-center text-sm text-gray-500">
+                <p className="flex items-center justify-center">
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  {t('secure_payment_stripe')}
+                </p>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

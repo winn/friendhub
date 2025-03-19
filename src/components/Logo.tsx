@@ -40,7 +40,7 @@ export function Logo({ size = 'md', showText = true, variant = 'light' }: LogoPr
       {showText && (
         <div className="flex items-center">
           <h1 className={`${textSizeClasses[size]} font-bold bg-gradient-to-r ${variant === 'light' ? 'from-white to-white/90' : 'from-fun-red to-fun-coral'} bg-clip-text text-transparent`}>
-            AI Friends Hub
+            AI Friend Hub
           </h1>
         </div>
       )}

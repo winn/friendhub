@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Bot, MessageSquare, Loader, ArrowLeft, Plus, Pencil, Trash, Star, Users, Zap, AlertTriangle } from 'lucide-react';
 import { api } from '../lib/api';
 import { EditAgentForm } from './EditAgentForm';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface Agent {
   agent_id: string;
-  agent_name: string;
+  name: string;
   personality: string;
   agent_profile_image: string;
   instructions: string;
@@ -17,6 +18,7 @@ interface Agent {
   llm_engine: string;
   number_of_message_called: number;
   number_of_users: number;
+  average_rating?: number;
 }
 
 interface MyAgentsProps {
@@ -27,6 +29,7 @@ interface MyAgentsProps {
 }
 
 export function MyAgents({ userId, onSelectAgent, onCreateNew, onBack }: MyAgentsProps) {
+  const { t } = useLanguage();
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +39,6 @@ export function MyAgents({ userId, onSelectAgent, onCreateNew, onBack }: MyAgent
 
   const fetchAgents = async () => {
     try {
-      // Use POST method with userId in body
       const response = await fetch(`${api.BASE_URL}/listagents`, {
         method: 'POST',
         headers: api.headers,
@@ -53,12 +55,28 @@ export function MyAgents({ userId, onSelectAgent, onCreateNew, onBack }: MyAgent
         throw new Error(data.error);
       }
       
-      // Filter agents by user ID
-      const userAgents = data.agents?.filter((agent: Agent) => agent.user_id === userId) || [];
+      // Filter agents by user ID and map to consistent field names
+      const userAgents = data.agents?.filter((agent: any) => agent.user_id === userId).map((agent: any) => ({
+        agent_id: agent.agent_id,
+        name: agent.name || agent.agent_name || agent.friend_name,
+        personality: agent.personality,
+        agent_profile_image: agent.agent_profile_image || agent.picture_url,
+        instructions: agent.instructions || agent.custom_instructions,
+        prohibition: agent.prohibition || agent.topics_to_avoid,
+        user_id: agent.user_id || agent.owner_id,
+        created_at: agent.created_at,
+        modified_at: agent.modified_at || agent.updated_at,
+        function_tools: agent.function_tools || [],
+        llm_engine: agent.llm_engine || 'anthropic.claude-v2',
+        number_of_message_called: agent.number_of_message_called || 0,
+        number_of_users: agent.number_of_users || 0,
+        average_rating: agent.average_rating || 0
+      })) || [];
+      
       setAgents(userAgents);
     } catch (err) {
       console.error('Error fetching my agents:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load your agents');
+      setError(err instanceof Error ? err.message : t('error'));
     } finally {
       setLoading(false);
     }
@@ -69,18 +87,29 @@ export function MyAgents({ userId, onSelectAgent, onCreateNew, onBack }: MyAgent
   }, [userId]);
 
   const handleSelectAgent = (agent: Agent) => {
+    // Store all agent data in localStorage with consistent field names
     localStorage.setItem('selectedAgentId', agent.agent_id);
-    localStorage.setItem('selectedAgentName', agent.agent_name);
+    localStorage.setItem('selectedAgentOwnerId', agent.user_id);
+    localStorage.setItem('selectedAgentName', agent.name);
     localStorage.setItem('selectedAgentImage', agent.agent_profile_image);
     localStorage.setItem('selectedAgentPersonality', agent.personality);
     localStorage.setItem('selectedAgentInstructions', agent.instructions);
     localStorage.setItem('selectedAgentProhibition', agent.prohibition || '');
+    localStorage.setItem('selectedAgentRating', agent.average_rating?.toString() || '0');
+    localStorage.setItem('selectedAgentStats', JSON.stringify({
+      messages: agent.number_of_message_called,
+      users: agent.number_of_users
+    }));
+    
+    // Store the complete agent object
+    localStorage.setItem('selectedAgent', JSON.stringify(agent));
+    
     onSelectAgent(agent.agent_id);
   };
 
   const handleEditClick = (agent: Agent) => {
     localStorage.setItem('selectedAgentId', agent.agent_id);
-    localStorage.setItem('selectedAgentName', agent.agent_name);
+    localStorage.setItem('selectedAgentName', agent.name);
     localStorage.setItem('selectedAgentImage', agent.agent_profile_image);
     localStorage.setItem('selectedAgentPersonality', agent.personality);
     localStorage.setItem('selectedAgentInstructions', agent.instructions);
@@ -104,7 +133,7 @@ export function MyAgents({ userId, onSelectAgent, onCreateNew, onBack }: MyAgent
       setShowDeleteConfirm(null);
     } catch (err) {
       console.error('Error deleting agent:', err);
-      setError(err instanceof Error ? err.message : 'Failed to delete agent');
+      setError(err instanceof Error ? err.message : t('error'));
     } finally {
       setDeleteLoading(false);
     }
@@ -126,7 +155,7 @@ export function MyAgents({ userId, onSelectAgent, onCreateNew, onBack }: MyAgent
     return (
       <div className="flex flex-col items-center justify-center h-64">
         <Loader className="h-12 w-12 text-fun-mint animate-spin" />
-        <p className="mt-4 text-white text-lg animate-pulse">Loading your AI squad... ✨</p>
+        <p className="mt-4 text-white text-lg animate-pulse">{t('loading')}...</p>
       </div>
     );
   }
@@ -139,14 +168,14 @@ export function MyAgents({ userId, onSelectAgent, onCreateNew, onBack }: MyAgent
           <button
             onClick={onBack}
             className="p-3 hover:bg-fun-red/10 rounded-full transition-colors"
-            aria-label="Go back"
+            aria-label={t('back')}
           >
             <ArrowLeft className="h-6 w-6 text-fun-red" />
           </button>
           <div className="flex items-center space-x-3">
             <Users className="h-8 w-8 text-fun-red float-animation" />
             <h2 className="text-2xl font-bold bg-gradient-to-r from-fun-red to-fun-mint bg-clip-text text-transparent">
-              My AI Squad ✨
+              {t('my_ai_squad')} ✨
             </h2>
           </div>
         </div>
@@ -155,13 +184,13 @@ export function MyAgents({ userId, onSelectAgent, onCreateNew, onBack }: MyAgent
           className="btn-fun px-6 py-3 text-white font-medium rounded-full inline-flex items-center space-x-2"
         >
           <Plus className="h-5 w-5" />
-          <span>Create New Friend</span>
+          <span>{t('create_friend')}</span>
         </button>
       </div>
 
       {error && (
         <div className="fun-card p-6 mb-8 border-2 border-fun-red/20">
-          <p className="text-fun-red text-lg">Oops! Something went wrong! 🙈</p>
+          <p className="text-fun-red text-lg">{t('error')}</p>
           <p className="text-gray-600 mt-2">{error}</p>
         </div>
       )}
@@ -178,10 +207,10 @@ export function MyAgents({ userId, onSelectAgent, onCreateNew, onBack }: MyAgent
                 <div className="bg-white p-6 rounded-xl max-w-xs mx-4 text-center">
                   <AlertTriangle className="h-12 w-12 text-fun-red mx-auto mb-4" />
                   <h4 className="text-lg font-bold text-gray-900 mb-2">
-                    Delete {agent.agent_name}?
+                    {t('delete')} {agent.name}?
                   </h4>
                   <p className="text-gray-600 mb-6">
-                    This action cannot be undone. Are you sure you want to delete this AI friend?
+                    {t('confirm_delete')}
                   </p>
                   <div className="flex space-x-3">
                     <button
@@ -189,14 +218,14 @@ export function MyAgents({ userId, onSelectAgent, onCreateNew, onBack }: MyAgent
                       className="flex-1 px-4 py-2 text-gray-700 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"
                       disabled={deleteLoading}
                     >
-                      Cancel
+                      {t('cancel')}
                     </button>
                     <button
                       onClick={() => handleConfirmDelete(agent.agent_id)}
                       className="flex-1 px-4 py-2 text-white bg-fun-red rounded-full hover:bg-fun-red/90 transition-colors"
                       disabled={deleteLoading}
                     >
-                      {deleteLoading ? 'Deleting...' : 'Delete'}
+                      {deleteLoading ? t('deleting') : t('delete')}
                     </button>
                   </div>
                 </div>
@@ -207,7 +236,7 @@ export function MyAgents({ userId, onSelectAgent, onCreateNew, onBack }: MyAgent
               {agent.agent_profile_image ? (
                 <img
                   src={agent.agent_profile_image}
-                  alt={agent.agent_name}
+                  alt={agent.name}
                   className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1675252271887-339c521bf7f1?q=80&w=500&auto=format&fit=crop';
@@ -222,11 +251,11 @@ export function MyAgents({ userId, onSelectAgent, onCreateNew, onBack }: MyAgent
               <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
                 <div className="badge-fun bg-white/90 flex items-center space-x-1">
                   <Users className="h-4 w-4 text-fun-red" />
-                  <span className="text-fun-red">{agent.number_of_users} friends</span>
+                  <span className="text-fun-red">{agent.number_of_users} {t('friends')}</span>
                 </div>
                 <div className="badge-fun bg-white/90 flex items-center space-x-1">
                   <MessageSquare className="h-4 w-4 text-fun-mint" />
-                  <span className="text-fun-mint">{agent.number_of_message_called} chats</span>
+                  <span className="text-fun-mint">{agent.number_of_message_called} {t('chats')}</span>
                 </div>
               </div>
             </div>
@@ -234,13 +263,13 @@ export function MyAgents({ userId, onSelectAgent, onCreateNew, onBack }: MyAgent
             <div className="p-6">
               <div className="flex items-center space-x-2 mb-3">
                 <h3 className="text-2xl font-bold bg-gradient-to-r from-fun-red to-fun-mint bg-clip-text text-transparent">
-                  {agent.agent_name}
+                  {agent.name}
                 </h3>
                 <Star className="h-5 w-5 text-fun-yellow bounce-fun" />
               </div>
               
               <p className="text-gray-600 mb-6 line-clamp-2 text-lg">
-                {agent.personality || 'Ready to be your friend! ✨'}
+                {agent.personality || t('ready_to_chat')}
               </p>
               
               <div className="flex space-x-3">
@@ -249,19 +278,19 @@ export function MyAgents({ userId, onSelectAgent, onCreateNew, onBack }: MyAgent
                   className="flex-1 btn-fun py-3 text-white font-medium rounded-full inline-flex items-center justify-center space-x-2"
                 >
                   <Zap className="h-5 w-5" />
-                  <span>Chat!</span>
+                  <span>{t('chat_now')}</span>
                 </button>
                 <button
                   onClick={() => handleEditClick(agent)}
                   className="btn-fun py-3 px-4 text-white font-medium rounded-full inline-flex items-center justify-center"
-                  aria-label="Edit agent"
+                  aria-label={t('edit_friend')}
                 >
                   <Pencil className="h-5 w-5" />
                 </button>
                 <button
                   onClick={() => handleDeleteClick(agent.agent_id)}
                   className="bg-fun-red/10 hover:bg-fun-red/20 py-3 px-4 text-fun-red font-medium rounded-full inline-flex items-center justify-center transition-colors"
-                  aria-label="Delete agent"
+                  aria-label={t('delete')}
                 >
                   <Trash className="h-5 w-5" />
                 </button>
@@ -275,18 +304,17 @@ export function MyAgents({ userId, onSelectAgent, onCreateNew, onBack }: MyAgent
         <div className="fun-card p-12 text-center">
           <Bot className="h-20 w-20 text-fun-mint mx-auto mb-6 bounce-fun" />
           <h3 className="text-2xl font-bold text-fun-mint mb-4">
-            No AI Friends Yet! 
-            <span className="emoji-float ml-2">🚀</span>
+            {t('no_friends_yet')}
           </h3>
           <p className="text-gray-600 text-lg mb-8">
-            Time to create your first awesome AI friend!
+            {t('create_first_friend')}
           </p>
           <button
             onClick={onCreateNew}
             className="btn-fun px-8 py-4 text-white font-medium rounded-full inline-flex items-center justify-center space-x-2 text-lg"
           >
             <Plus className="h-6 w-6" />
-            <span>Create My First Friend!</span>
+            <span>{t('create_friend')}</span>
           </button>
         </div>
       )}

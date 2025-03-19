@@ -11,7 +11,6 @@ function corsHeaders(extraHeaders = {}) {
 }
 
 serve(async (req: Request) => {
-  // Handle preflight OPTIONS request
   if (req.method === "OPTIONS") {
     return new Response("", { status: 204, headers: corsHeaders() });
   }
@@ -43,18 +42,22 @@ serve(async (req: Request) => {
     }
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get agent details
+    // Get agent details - use eq and maybeSingle() to handle no results gracefully
     const { data: agent, error: agentError } = await supabase
       .from("agents")
       .select("*")
       .eq("agent_id", agentId)
-      .single();
+      .maybeSingle();
 
-    if (agentError || !agent) {
-      throw new Error("Agent not found");
+    if (agentError) {
+      throw new Error(`Database error: ${agentError.message}`);
     }
 
-    // Create conversation if needed
+    if (!agent) {
+      throw new Error(`Agent not found with ID: ${agentId}`);
+    }
+
+    // Create or get conversation
     let activeConversationId = conversationId;
     if (!activeConversationId) {
       const { data: newConversation, error: convError } = await supabase
@@ -67,7 +70,7 @@ serve(async (req: Request) => {
         .single();
 
       if (convError) {
-        throw new Error("Failed to create conversation");
+        throw new Error(`Failed to create conversation: ${convError.message}`);
       }
       activeConversationId = newConversation.id;
     }
@@ -83,21 +86,25 @@ serve(async (req: Request) => {
       });
 
     if (messageError) {
-      throw new Error("Failed to store user message");
+      throw new Error(`Failed to store user message: ${messageError.message}`);
     }
 
     // Prepare system prompt from agent configuration
-    const systemPrompt = `You are ${agent.agent_name}, an AI assistant with the following personality: ${agent.personality}
+    const systemPrompt = `You are ${agent.name}, an AI assistant with the following personality: ${agent.personality || 'helpful and friendly'}
 
-Instructions: ${agent.instructions}
+Instructions: ${agent.instructions || 'Be helpful and engaging'}
 
-Prohibitions: ${agent.prohibition || "None specified"}
+Prohibitions: ${agent.prohibition || 'Avoid harmful or inappropriate content'}
 
 Remember to stay in character and follow all instructions and prohibitions.`;
 
-    // Call Bedrock API (you'll need to implement this part based on your Bedrock setup)
-    // This is a placeholder for the actual Bedrock API call
-    const response = "I am ${agent.agent_name} and I received your message: " + message;
+    // Simulate Bedrock response for now
+    // In production, this would be replaced with actual Bedrock API call
+    const response = `I am ${agent.name}. ${message.includes('?') ? 
+      'Let me help you with that! ' : 
+      'Thank you for your message! '} ${
+      agent.personality?.includes('friendly') ? '😊' : ''
+    }`;
 
     // Store assistant response
     const { error: responseError } = await supabase
@@ -110,16 +117,21 @@ Remember to stay in character and follow all instructions and prohibitions.`;
       });
 
     if (responseError) {
-      throw new Error("Failed to store assistant response");
+      throw new Error(`Failed to store assistant response: ${responseError.message}`);
     }
 
-    // Update message count and other stats
-    await supabase
+    // Update message count
+    const { error: updateError } = await supabase
       .from("agents")
       .update({ 
         number_of_message_called: agent.number_of_message_called + 1
       })
       .eq("agent_id", agentId);
+
+    if (updateError) {
+      console.warn(`Failed to update message count: ${updateError.message}`);
+      // Don't fail the whole operation if this update fails
+    }
 
     return new Response(
       JSON.stringify({

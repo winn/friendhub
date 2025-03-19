@@ -63,6 +63,14 @@ export const api = {
       });
       return response.json();
     },
+    getReviews: async (agentId: string) => {
+      const response = await fetch(`${BASE_URL}/pull-rating`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ agent_id: agentId })
+      });
+      return response.json();
+    },
     creditPoints: async (agentId: string, ownerId: string, points: number, userId: string) => {
       try {
         const response = await fetch(`${BASE_URL}/points`, {
@@ -90,21 +98,59 @@ export const api = {
 
   message: {
     send: async (data: SendMessageRequest) => {
-      // Ensure we have all required fields
-      const payload = {
-        ...data,
-        conversationId: data.conversationId || undefined, // Only include if defined
-        model: "anthropic.claude-v2", // Specify model for Bedrock
-        temperature: 0.7,
-        max_tokens: 1000
-      };
+      try {
+        // First check if we have all required fields
+        if (!data.userId || !data.agentId || !data.message) {
+          throw new Error('Missing required message parameters');
+        }
 
-      const response = await fetch(`${BASE_URL}/message-bedrock`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(payload)
-      });
-      return response.json();
+        const response = await fetch(`${BASE_URL}/message-bedrock`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            userId: data.userId,
+            agentId: data.agentId,
+            message: data.message,
+            conversationId: data.conversationId,
+            model: "anthropic.claude-v2",
+            temperature: 0.7,
+            max_tokens: 1000
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `Failed to send message (${response.status})`);
+        }
+
+        const responseData = await response.json();
+        
+        // Validate response data
+        if (!responseData) {
+          throw new Error('Empty response from message service');
+        }
+
+        if (responseData.error) {
+          throw new Error(responseData.error);
+        }
+
+        if (!responseData.message && !responseData.error) {
+          throw new Error('Invalid response format from message service');
+        }
+
+        // Ensure we have a conversation ID
+        if (!data.conversationId && !responseData.conversationId) {
+          throw new Error('No conversation ID in response');
+        }
+
+        return {
+          message: responseData.message,
+          conversationId: responseData.conversationId || data.conversationId
+        };
+      } catch (error) {
+        console.error('Message API error:', error);
+        throw error;
+      }
     }
   },
 
